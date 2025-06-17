@@ -8,6 +8,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ArrowLeft, Clock, Copy } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
+import { useRoom } from "@/hooks/useRoom";
 
 const CreateRoom = () => {
   const [expirationType, setExpirationType] = useState("");
@@ -16,10 +17,7 @@ const CreateRoom = () => {
   const [roomCode, setRoomCode] = useState("");
   const [roomCreated, setRoomCreated] = useState(false);
   const navigate = useNavigate();
-
-  const generateRoomCode = () => {
-    return Math.random().toString(36).substring(2, 8).toLowerCase();
-  };
+  const { createRoom } = useRoom();
 
   const getExpirationHours = () => {
     switch (expirationType) {
@@ -43,31 +41,20 @@ const CreateRoom = () => {
 
     setIsCreating(true);
     
-    // Simulate API call
-    setTimeout(() => {
-      const newRoomCode = generateRoomCode();
-      const expirationHours = getExpirationHours();
-      const expiresAt = new Date(Date.now() + expirationHours * 60 * 60 * 1000);
-      
-      // Store room data in localStorage (in real app, this would be in backend)
-      const roomData = {
-        code: newRoomCode,
-        expiresAt: expiresAt.toISOString(),
-        content: "",
-        createdAt: new Date().toISOString()
-      };
-      
-      localStorage.setItem(`room_${newRoomCode}`, JSON.stringify(roomData));
-      
+    const expirationHours = getExpirationHours();
+    const newRoomCode = await createRoom(expirationHours);
+    
+    if (newRoomCode) {
       setRoomCode(newRoomCode);
       setRoomCreated(true);
-      setIsCreating(false);
       
       toast({
         title: "Room created successfully!",
         description: `Your room expires in ${expirationHours} ${expirationHours === 1 ? 'hour' : 'hours'}.`,
       });
-    }, 1000);
+    }
+    
+    setIsCreating(false);
   };
 
   const copyRoomLink = () => {

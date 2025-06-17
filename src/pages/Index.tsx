@@ -5,25 +5,14 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Share, Clock, Shield, Zap } from "lucide-react";
 
 const Index = () => {
   const [roomCode, setRoomCode] = useState("");
-  const [isCreating, setIsCreating] = useState(false);
   const navigate = useNavigate();
 
-  const generateRoomCode = () => {
-    return Math.random().toString(36).substring(2, 8).toLowerCase();
-  };
-
   const handleCreateRoom = () => {
-    setIsCreating(true);
-    // Simulate room creation delay
-    setTimeout(() => {
-      const newRoomCode = generateRoomCode();
-      navigate(`/room/${newRoomCode}`);
-    }, 500);
+    navigate("/create");
   };
 
   const handleJoinRoom = () => {
@@ -76,10 +65,9 @@ const Index = () => {
               </p>
               <Button 
                 onClick={handleCreateRoom}
-                disabled={isCreating}
                 className="w-full bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 text-white font-semibold py-3 rounded-xl transition-all duration-300"
               >
-                {isCreating ? "Creating Room..." : "Create Room"}
+                Create Room
               </Button>
             </CardContent>
           </Card>

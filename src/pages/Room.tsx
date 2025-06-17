@@ -6,82 +6,64 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
 import { ArrowLeft, Copy, Clock, Users } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
+import { useRoom } from "@/hooks/useRoom";
 
 const Room = () => {
   const { roomCode } = useParams();
   const navigate = useNavigate();
   const [content, setContent] = useState("");
   const [timeLeft, setTimeLeft] = useState("");
-  const [roomExists, setRoomExists] = useState(true);
-  const [isExpired, setIsExpired] = useState(false);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const { room, loading, error, updateContent } = useRoom(roomCode);
 
   useEffect(() => {
     if (!roomCode) {
       navigate("/");
       return;
     }
-
-    // Check if room exists and load data
-    const roomData = localStorage.getItem(`room_${roomCode}`);
-    if (!roomData) {
-      setRoomExists(false);
-      return;
-    }
-
-    const room = JSON.parse(roomData);
-    const expiresAt = new Date(room.expiresAt);
-    const now = new Date();
-
-    if (now >= expiresAt) {
-      // Room has expired, delete it
-      localStorage.removeItem(`room_${roomCode}`);
-      setIsExpired(true);
-      return;
-    }
-
-    setContent(room.content || "");
-
-    // Update countdown timer every second
-    const timer = setInterval(() => {
-      const now = new Date();
-      const timeRemaining = expiresAt.getTime() - now.getTime();
-
-      if (timeRemaining <= 0) {
-        // Room expired
-        localStorage.removeItem(`room_${roomCode}`);
-        setIsExpired(true);
-        clearInterval(timer);
-        return;
-      }
-
-      // Format time remaining
-      const hours = Math.floor(timeRemaining / (1000 * 60 * 60));
-      const minutes = Math.floor((timeRemaining % (1000 * 60 * 60)) / (1000 * 60));
-      const seconds = Math.floor((timeRemaining % (1000 * 60)) / 1000);
-
-      if (hours > 0) {
-        setTimeLeft(`${hours}h ${minutes}m ${seconds}s`);
-      } else if (minutes > 0) {
-        setTimeLeft(`${minutes}m ${seconds}s`);
-      } else {
-        setTimeLeft(`${seconds}s`);
-      }
-    }, 1000);
-
-    return () => clearInterval(timer);
   }, [roomCode, navigate]);
+
+  useEffect(() => {
+    if (room) {
+      setContent(room.content);
+      
+      // Update countdown timer every second
+      const timer = setInterval(() => {
+        const expiresAt = new Date(room.expires_at);
+        const now = new Date();
+        const timeRemaining = expiresAt.getTime() - now.getTime();
+
+        if (timeRemaining <= 0) {
+          navigate("/");
+          toast({
+            title: "Room Expired",
+            description: "This room has expired and been deleted.",
+            variant: "destructive",
+          });
+          return;
+        }
+
+        // Format time remaining
+        const hours = Math.floor(timeRemaining / (1000 * 60 * 60));
+        const minutes = Math.floor((timeRemaining % (1000 * 60 * 60)) / (1000 * 60));
+        const seconds = Math.floor((timeRemaining % (1000 * 60)) / 1000);
+
+        if (hours > 0) {
+          setTimeLeft(`${hours}h ${minutes}m ${seconds}s`);
+        } else if (minutes > 0) {
+          setTimeLeft(`${minutes}m ${seconds}s`);
+        } else {
+          setTimeLeft(`${seconds}s`);
+        }
+      }, 1000);
+
+      return () => clearInterval(timer);
+    }
+  }, [room, navigate]);
 
   const handleContentChange = (newContent: string) => {
     setContent(newContent);
-    
-    // Save to localStorage (in real app, this would sync with backend)
-    const roomData = localStorage.getItem(`room_${roomCode}`);
-    if (roomData) {
-      const room = JSON.parse(roomData);
-      room.content = newContent;
-      localStorage.setItem(`room_${roomCode}`, JSON.stringify(room));
-    }
+    updateContent(newContent);
   };
 
   const copyRoomLink = () => {
@@ -101,20 +83,15 @@ const Room = () => {
     });
   };
 
-  if (!roomExists) {
+  if (loading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-purple-50 via-blue-50 to-indigo-100 p-4">
         <div className="container mx-auto max-w-2xl">
           <Card className="border-0 shadow-xl bg-white/80 backdrop-blur-sm">
             <CardContent className="text-center py-16">
-              <div className="text-6xl mb-4">🔍</div>
-              <h2 className="text-3xl font-bold mb-4">Room Not Found</h2>
-              <p className="text-gray-600 mb-6">
-                The room code "{roomCode}" doesn't exist or may have expired.
-              </p>
-              <Button onClick={() => navigate("/")} className="bg-gradient-to-r from-purple-600 to-blue-600">
-                Go Home
-              </Button>
+              <div className="text-6xl mb-4">⏳</div>
+              <h2 className="text-3xl font-bold mb-4">Loading Room...</h2>
+              <p className="text-gray-600">Please wait while we load your room.</p>
             </CardContent>
           </Card>
         </div>
@@ -122,19 +99,26 @@ const Room = () => {
     );
   }
 
-  if (isExpired) {
+  if (error) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-purple-50 via-blue-50 to-indigo-100 p-4">
         <div className="container mx-auto max-w-2xl">
           <Card className="border-0 shadow-xl bg-white/80 backdrop-blur-sm">
             <CardContent className="text-center py-16">
-              <div className="text-6xl mb-4">⏰</div>
-              <h2 className="text-3xl font-bold mb-4">Room Expired</h2>
+              <div className="text-6xl mb-4">
+                {error === "Room not found" ? "🔍" : "⏰"}
+              </div>
+              <h2 className="text-3xl font-bold mb-4">
+                {error === "Room not found" ? "Room Not Found" : "Room Expired"}
+              </h2>
               <p className="text-gray-600 mb-6">
-                This room has expired and all content has been automatically deleted.
+                {error === "Room not found" 
+                  ? `The room code "${roomCode}" doesn't exist or may have expired.`
+                  : "This room has expired and all content has been automatically deleted."
+                }
               </p>
               <Button onClick={() => navigate("/")} className="bg-gradient-to-r from-purple-600 to-blue-600">
-                Create New Room
+                {error === "Room not found" ? "Go Home" : "Create New Room"}
               </Button>
             </CardContent>
           </Card>
