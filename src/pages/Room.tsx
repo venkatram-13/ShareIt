@@ -4,9 +4,12 @@ import { useParams, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
-import { ArrowLeft, Copy, Clock, Users } from "lucide-react";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { ArrowLeft, Copy, Clock, Users, FileText, Upload } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 import { useRoom } from "@/hooks/useRoom";
+import FileUpload from "@/components/FileUpload";
+import FileList from "@/components/FileList";
 
 const Room = () => {
   const { roomCode } = useParams();
@@ -14,7 +17,7 @@ const Room = () => {
   const [content, setContent] = useState("");
   const [timeLeft, setTimeLeft] = useState("");
   const textareaRef = useRef<HTMLTextAreaElement>(null);
-  const { room, loading, error, updateContent } = useRoom(roomCode);
+  const { room, files, loading, error, updateContent, uploadFile, downloadFile, deleteFile } = useRoom(roomCode);
 
   useEffect(() => {
     if (!roomCode) {
@@ -174,34 +177,65 @@ const Room = () => {
           </CardHeader>
         </Card>
 
-        {/* Text Editor */}
+        {/* Main Content */}
         <Card className="border-0 shadow-xl bg-white/80 backdrop-blur-sm">
           <CardHeader className="pb-4">
-            <div className="flex items-center justify-between">
-              <CardTitle className="text-xl">Shared Text</CardTitle>
-              <Button
-                onClick={copyContent}
-                variant="outline"
-                size="sm"
-                disabled={!content.trim()}
-              >
-                <Copy className="w-4 h-4 mr-2" />
-                Copy Text
-              </Button>
-            </div>
+            <CardTitle className="text-xl">Shared Content</CardTitle>
           </CardHeader>
           <CardContent>
-            <Textarea
-              ref={textareaRef}
-              value={content}
-              onChange={(e) => handleContentChange(e.target.value)}
-              placeholder="Start typing your text here... Changes are saved automatically and will be visible to anyone with the room link."
-              className="min-h-[400px] resize-none border-gray-200 focus:border-purple-500 focus:ring-purple-500 rounded-xl"
-            />
-            <div className="flex items-center justify-between mt-4 text-sm text-gray-500">
-              <span>{content.length} characters</span>
-              <span>Changes saved automatically</span>
-            </div>
+            <Tabs defaultValue="text" className="w-full">
+              <TabsList className="grid w-full grid-cols-2">
+                <TabsTrigger value="text" className="flex items-center gap-2">
+                  <FileText className="w-4 h-4" />
+                  Text ({content.length} chars)
+                </TabsTrigger>
+                <TabsTrigger value="files" className="flex items-center gap-2">
+                  <Upload className="w-4 h-4" />
+                  Files ({files.length})
+                </TabsTrigger>
+              </TabsList>
+              
+              <TabsContent value="text" className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <p className="text-sm text-gray-600">Real-time text collaboration</p>
+                  <Button
+                    onClick={copyContent}
+                    variant="outline"
+                    size="sm"
+                    disabled={!content.trim()}
+                  >
+                    <Copy className="w-4 h-4 mr-2" />
+                    Copy Text
+                  </Button>
+                </div>
+                
+                <Textarea
+                  ref={textareaRef}
+                  value={content}
+                  onChange={(e) => handleContentChange(e.target.value)}
+                  placeholder="Start typing your text here... Changes are saved automatically and will be visible to anyone with the room link."
+                  className="min-h-[400px] resize-none border-gray-200 focus:border-purple-500 focus:ring-purple-500 rounded-xl"
+                />
+                
+                <div className="flex items-center justify-between text-sm text-gray-500">
+                  <span>{content.length} characters</span>
+                  <span>Changes saved automatically</span>
+                </div>
+              </TabsContent>
+              
+              <TabsContent value="files" className="space-y-6">
+                <div>
+                  <p className="text-sm text-gray-600 mb-4">Upload and share files with room participants</p>
+                  <FileUpload onFileUpload={uploadFile} />
+                </div>
+                
+                <FileList 
+                  files={files}
+                  onDownload={downloadFile}
+                  onDelete={deleteFile}
+                />
+              </TabsContent>
+            </Tabs>
           </CardContent>
         </Card>
 
@@ -212,7 +246,7 @@ const Room = () => {
             <span className="font-medium">This room will expire in {timeLeft}</span>
           </div>
           <p className="text-orange-600 text-sm mt-2">
-            All content will be permanently deleted when the timer reaches zero.
+            All content and files will be permanently deleted when the timer reaches zero.
           </p>
         </div>
       </div>

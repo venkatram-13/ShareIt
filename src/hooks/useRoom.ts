@@ -12,8 +12,19 @@ export interface Room {
   updated_at: string;
 }
 
+export interface RoomFile {
+  id: string;
+  room_code: string;
+  file_name: string;
+  file_path: string;
+  file_size: number;
+  file_type: string;
+  uploaded_at: string;
+}
+
 export const useRoom = (roomCode?: string) => {
   const [room, setRoom] = useState<Room | null>(null);
+  const [files, setFiles] = useState<RoomFile[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -63,10 +74,30 @@ export const useRoom = (roomCode?: string) => {
       }
     };
 
-    fetchRoom();
+    const fetchFiles = async () => {
+      try {
+        const { data, error } = await supabase
+          .from('room_files')
+          .select('*')
+          .eq('room_code', roomCode)
+          .order('uploaded_at', { ascending: false });
 
-    // Subscribe to real-time changes
-    const channel = supabase
+        if (error) {
+          console.error('Error fetching files:', error);
+          return;
+        }
+
+        setFiles(data || []);
+      } catch (err) {
+        console.error('Error fetching files:', err);
+      }
+    };
+
+    fetchRoom();
+    fetchFiles();
+
+    // Subscribe to real-time changes for room content
+    const roomChannel = supabase
       .channel('room-changes')
       .on(
         'postgres_changes',
@@ -83,8 +114,27 @@ export const useRoom = (roomCode?: string) => {
       )
       .subscribe();
 
+    // Subscribe to real-time changes for files
+    const filesChannel = supabase
+      .channel('files-changes')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'room_files',
+          filter: `room_code=eq.${roomCode}`
+        },
+        (payload) => {
+          console.log('Files updated:', payload);
+          fetchFiles(); // Refetch files when changes occur
+        }
+      )
+      .subscribe();
+
     return () => {
-      supabase.removeChannel(channel);
+      supabase.removeChannel(roomChannel);
+      supabase.removeChannel(filesChannel);
     };
   }, [roomCode]);
 
@@ -110,6 +160,144 @@ export const useRoom = (roomCode?: string) => {
       toast({
         title: "Error",
         description: "Failed to save changes",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const uploadFile = async (file: File): Promise<boolean> => {
+    if (!roomCode) return false;
+
+    try {
+      // Generate unique file path
+      const fileExt = file.name.split('.').pop();
+      const fileName = `${roomCode}/${Date.now()}-${file.name}`;
+      
+      // Upload file to storage
+      const { data: uploadData, error: uploadError } = await supabase.storage
+        .from('room-files')
+        .upload(fileName, file);
+
+      if (uploadError) {
+        console.error('Error uploading file:', uploadError);
+        toast({
+          title: "Error",
+          description: "Failed to upload file",
+          variant: "destructive",
+        });
+        return false;
+      }
+
+      // Save file metadata to database
+      const { error: dbError } = await supabase
+        .from('room_files')
+        .insert({
+          room_code: roomCode,
+          file_name: file.name,
+          file_path: uploadData.path,
+          file_size: file.size,
+          file_type: file.type
+        });
+
+      if (dbError) {
+        console.error('Error saving file metadata:', dbError);
+        // Try to delete the uploaded file
+        await supabase.storage.from('room-files').remove([fileName]);
+        toast({
+          title: "Error",
+          description: "Failed to save file information",
+          variant: "destructive",
+        });
+        return false;
+      }
+
+      toast({
+        title: "Success",
+        description: "File uploaded successfully",
+      });
+      return true;
+    } catch (err) {
+      console.error('Error uploading file:', err);
+      toast({
+        title: "Error",
+        description: "Failed to upload file",
+        variant: "destructive",
+      });
+      return false;
+    }
+  };
+
+  const downloadFile = async (fileData: RoomFile) => {
+    try {
+      const { data, error } = await supabase.storage
+        .from('room-files')
+        .download(fileData.file_path);
+
+      if (error) {
+        console.error('Error downloading file:', error);
+        toast({
+          title: "Error",
+          description: "Failed to download file",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      // Create download link
+      const url = URL.createObjectURL(data);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = fileData.file_name;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    } catch (err) {
+      console.error('Error downloading file:', err);
+      toast({
+        title: "Error",
+        description: "Failed to download file",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const deleteFile = async (fileData: RoomFile) => {
+    try {
+      // Delete from storage
+      const { error: storageError } = await supabase.storage
+        .from('room-files')
+        .remove([fileData.file_path]);
+
+      if (storageError) {
+        console.error('Error deleting file from storage:', storageError);
+      }
+
+      // Delete from database
+      const { error: dbError } = await supabase
+        .from('room_files')
+        .delete()
+        .eq('id', fileData.id);
+
+      if (dbError) {
+        console.error('Error deleting file from database:', dbError);
+        toast({
+          title: "Error",
+          description: "Failed to delete file",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      toast({
+        title: "Success",
+        description: "File deleted successfully",
+      });
+    } catch (err) {
+      console.error('Error deleting file:', err);
+      toast({
+        title: "Error",
+        description: "Failed to delete file",
         variant: "destructive",
       });
     }
@@ -155,9 +343,13 @@ export const useRoom = (roomCode?: string) => {
 
   return {
     room,
+    files,
     loading,
     error,
     updateContent,
+    uploadFile,
+    downloadFile,
+    deleteFile,
     createRoom
   };
 };
