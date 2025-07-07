@@ -1,15 +1,15 @@
-
 import { useState, useEffect, useRef } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { ArrowLeft, Copy, Clock, Users, FileText, Upload } from "lucide-react";
+import { ArrowLeft, Copy, Clock, Users, FileText, Upload, Share2 } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 import { useRoom } from "@/hooks/useRoom";
 import FileUpload from "@/components/FileUpload";
 import FileList from "@/components/FileList";
+import { ThemeToggle } from "@/components/theme-toggle";
 
 const Room = () => {
   const { roomCode } = useParams();
@@ -86,6 +86,15 @@ const Room = () => {
     });
   };
 
+  const copyRoomCode = () => {
+    const roomCode = `${roomCode}`;
+    navigator.clipboard.writeText(roomCode);
+    toast({
+      title: "Code copied!",
+      description: "Room code has been copied to your clipboard.",
+    });
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-purple-50 via-blue-50 to-indigo-100 p-4">
@@ -131,8 +140,32 @@ const Room = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-purple-50 via-blue-50 to-indigo-100 p-4">
-      <div className="container mx-auto max-w-4xl">
+    <div className="min-h-screen bg-gradient-to-br from-purple-50 to-blue-50 dark:from-gray-900 dark:to-gray-800 p-4">
+      <div className="max-w-4xl mx-auto">
+        <div className="flex justify-between items-center mb-6">
+          <div className="flex items-center space-x-4">
+            <Button variant="outline" onClick={() => navigate("/")}>
+              <ArrowLeft className="w-4 h-4 mr-2" />
+              Leave Room
+            </Button>
+            <div className="flex items-center space-x-2">
+              <Share2 className="w-6 h-6 text-purple-600 dark:text-purple-400" />
+              <span className="text-xl font-bold text-gray-900 dark:text-white">Room: {roomCode}</span>
+            </div>
+          </div>
+          <div className="flex items-center space-x-2">
+            <Button
+              onClick={copyRoomCode}
+              variant="outline"
+              size="sm"
+            >
+              <Copy className="w-4 h-4 mr-2" />
+              Copy Code
+            </Button>
+            <ThemeToggle />
+          </div>
+        </div>
+
         {/* Header */}
         <div className="flex items-center justify-between mb-6">
           <Button
