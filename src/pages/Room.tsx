@@ -1,3 +1,4 @@
+
 import { useState, useEffect, useRef } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -87,23 +88,24 @@ const Room = () => {
   };
 
   const copyRoomCode = () => {
-    const roomCode = `${roomCode}`;
-    navigator.clipboard.writeText(roomCode);
-    toast({
-      title: "Code copied!",
-      description: "Room code has been copied to your clipboard.",
-    });
+    if (roomCode) {
+      navigator.clipboard.writeText(roomCode);
+      toast({
+        title: "Code copied!",
+        description: "Room code has been copied to your clipboard.",
+      });
+    }
   };
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-purple-50 via-blue-50 to-indigo-100 p-4">
+      <div className="min-h-screen bg-gradient-to-br from-purple-50 via-blue-50 to-indigo-100 dark:from-gray-900 dark:to-gray-800 p-4">
         <div className="container mx-auto max-w-2xl">
-          <Card className="border-0 shadow-xl bg-white/80 backdrop-blur-sm">
+          <Card className="border-0 shadow-xl bg-white/80 backdrop-blur-sm dark:bg-gray-800/80">
             <CardContent className="text-center py-16">
               <div className="text-6xl mb-4">⏳</div>
-              <h2 className="text-3xl font-bold mb-4">Loading Room...</h2>
-              <p className="text-gray-600">Please wait while we load your room.</p>
+              <h2 className="text-3xl font-bold mb-4 dark:text-white">Loading Room...</h2>
+              <p className="text-gray-600 dark:text-gray-400">Please wait while we load your room.</p>
             </CardContent>
           </Card>
         </div>
@@ -113,17 +115,17 @@ const Room = () => {
 
   if (error) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-purple-50 via-blue-50 to-indigo-100 p-4">
+      <div className="min-h-screen bg-gradient-to-br from-purple-50 via-blue-50 to-indigo-100 dark:from-gray-900 dark:to-gray-800 p-4">
         <div className="container mx-auto max-w-2xl">
-          <Card className="border-0 shadow-xl bg-white/80 backdrop-blur-sm">
+          <Card className="border-0 shadow-xl bg-white/80 backdrop-blur-sm dark:bg-gray-800/80">
             <CardContent className="text-center py-16">
               <div className="text-6xl mb-4">
                 {error === "Room not found" ? "🔍" : "⏰"}
               </div>
-              <h2 className="text-3xl font-bold mb-4">
+              <h2 className="text-3xl font-bold mb-4 dark:text-white">
                 {error === "Room not found" ? "Room Not Found" : "Room Expired"}
               </h2>
-              <p className="text-gray-600 mb-6">
+              <p className="text-gray-600 dark:text-gray-400 mb-6">
                 {error === "Room not found" 
                   ? `The room code "${roomCode}" doesn't exist or may have expired.`
                   : "This room has expired and all content has been automatically deleted."
@@ -171,22 +173,22 @@ const Room = () => {
           <Button
             variant="ghost"
             onClick={() => navigate("/")}
-            className="hover:bg-white/50"
+            className="hover:bg-white/50 dark:hover:bg-gray-800/50"
           >
             <ArrowLeft className="w-4 h-4 mr-2" />
             Back to Home
           </Button>
 
           <div className="flex items-center space-x-4">
-            <div className="flex items-center space-x-2 bg-white/80 backdrop-blur-sm rounded-xl px-4 py-2">
+            <div className="flex items-center space-x-2 bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm rounded-xl px-4 py-2">
               <Clock className="w-4 h-4 text-orange-500" />
-              <span className="font-mono text-sm font-medium">{timeLeft}</span>
+              <span className="font-mono text-sm font-medium dark:text-white">{timeLeft}</span>
             </div>
             
             <Button
               onClick={copyRoomLink}
               variant="outline"
-              className="bg-white/80 backdrop-blur-sm"
+              className="bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm"
             >
               <Copy className="w-4 h-4 mr-2" />
               Share Link
@@ -195,14 +197,14 @@ const Room = () => {
         </div>
 
         {/* Room Info */}
-        <Card className="border-0 shadow-xl bg-white/80 backdrop-blur-sm mb-6">
+        <Card className="border-0 shadow-xl bg-white/80 backdrop-blur-sm dark:bg-gray-800/80 mb-6">
           <CardHeader className="pb-4">
             <div className="flex items-center justify-between">
               <div>
-                <CardTitle className="text-2xl">Room: {roomCode}</CardTitle>
-                <p className="text-gray-600">Share this code with others to collaborate</p>
+                <CardTitle className="text-2xl dark:text-white">Room: {roomCode}</CardTitle>
+                <p className="text-gray-600 dark:text-gray-400">Share this code with others to collaborate</p>
               </div>
-              <div className="flex items-center space-x-2 text-sm text-gray-500">
+              <div className="flex items-center space-x-2 text-sm text-gray-500 dark:text-gray-400">
                 <Users className="w-4 h-4" />
                 <span>Anonymous Room</span>
               </div>
@@ -211,9 +213,9 @@ const Room = () => {
         </Card>
 
         {/* Main Content */}
-        <Card className="border-0 shadow-xl bg-white/80 backdrop-blur-sm">
+        <Card className="border-0 shadow-xl bg-white/80 backdrop-blur-sm dark:bg-gray-800/80">
           <CardHeader className="pb-4">
-            <CardTitle className="text-xl">Shared Content</CardTitle>
+            <CardTitle className="text-xl dark:text-white">Shared Content</CardTitle>
           </CardHeader>
           <CardContent>
             <Tabs defaultValue="text" className="w-full">
@@ -230,7 +232,7 @@ const Room = () => {
               
               <TabsContent value="text" className="space-y-4">
                 <div className="flex items-center justify-between">
-                  <p className="text-sm text-gray-600">Real-time text collaboration</p>
+                  <p className="text-sm text-gray-600 dark:text-gray-400">Real-time text collaboration</p>
                   <Button
                     onClick={copyContent}
                     variant="outline"
@@ -247,10 +249,10 @@ const Room = () => {
                   value={content}
                   onChange={(e) => handleContentChange(e.target.value)}
                   placeholder="Start typing your text here... Changes are saved automatically and will be visible to anyone with the room link."
-                  className="min-h-[400px] resize-none border-gray-200 focus:border-purple-500 focus:ring-purple-500 rounded-xl"
+                  className="min-h-[400px] resize-none border-gray-200 focus:border-purple-500 focus:ring-purple-500 rounded-xl dark:border-gray-600 dark:bg-gray-900/50"
                 />
                 
-                <div className="flex items-center justify-between text-sm text-gray-500">
+                <div className="flex items-center justify-between text-sm text-gray-500 dark:text-gray-400">
                   <span>{content.length} characters</span>
                   <span>Changes saved automatically</span>
                 </div>
@@ -258,7 +260,7 @@ const Room = () => {
               
               <TabsContent value="files" className="space-y-6">
                 <div>
-                  <p className="text-sm text-gray-600 mb-4">Upload and share files with room participants</p>
+                  <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">Upload and share files with room participants</p>
                   <FileUpload onFileUpload={uploadFile} />
                 </div>
                 
@@ -273,12 +275,12 @@ const Room = () => {
         </Card>
 
         {/* Warning */}
-        <div className="mt-6 p-4 bg-orange-50 border border-orange-200 rounded-xl">
-          <div className="flex items-center space-x-2 text-orange-700">
+        <div className="mt-6 p-4 bg-orange-50 dark:bg-orange-900/20 border border-orange-200 dark:border-orange-800 rounded-xl">
+          <div className="flex items-center space-x-2 text-orange-700 dark:text-orange-400">
             <Clock className="w-5 h-5" />
             <span className="font-medium">This room will expire in {timeLeft}</span>
           </div>
-          <p className="text-orange-600 text-sm mt-2">
+          <p className="text-orange-600 dark:text-orange-400 text-sm mt-2">
             All content and files will be permanently deleted when the timer reaches zero.
           </p>
         </div>
